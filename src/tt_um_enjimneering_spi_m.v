@@ -17,6 +17,14 @@ module tt_um_enjimneering_spi_m (
 );
 
   // -----------------------------------------------------------------------------
+  // Paramaters
+  // --------------------------------------------------------------------------
+  
+    // Framebuffer (6-bit color)
+    localparam FB_ADDR_BITS = 16;
+    localparam FB_DEPTH = 1 << FB_ADDR_BITS;
+
+  // -----------------------------------------------------------------------------
   // Internal Signals
   // --------------------------------------------------------------------------
     
@@ -39,6 +47,11 @@ module tt_um_enjimneering_spi_m (
     wire       vga_frame_end;      // high for one clk at the end of each frame
     wire [9:0] vha_screen_hpos;    // horizontal pixel position (0-639)
     wire [9:0] vga_screen_vpos;    // vertical pixel position (0-479)
+
+    reg [5:0] framebuffer [0:FB_DEPTH-1];
+    reg [FB_ADDR_BITS-1:0] fb_wr_ptr;
+    wire [FB_ADDR_BITS-1:0] fb_rd_addr;
+    wire [5:0] fb_rd_data;
 
     // VGA Pixel Color (RR GG BB)
     wire [5:0] pixel_color;          // 6-bit pixel color from 64-color palette (2 bits each for R, G, B)
@@ -105,7 +118,8 @@ module tt_um_enjimneering_spi_m (
   assign uio_out[1] = spi_sck;
   assign uio_out[2] = spi_mosi;
   assign spi_miso   = uio_in[3];
-  assign uio_out[3] = 1'b0; 
+  wire unused_inputs = &{ena, ui_in[6:2], uio_in[7:4], uio_in[2:0], data_out[7:6], 1'b0};
+  assign uio_out[3] = unused_inputs & 1'b0;
   assign uio_out[4] = busy;
   assign uio_out[5] = valid;
   assign uio_out[6] = data_out[0];
@@ -113,8 +127,21 @@ module tt_um_enjimneering_spi_m (
 
   assign uio_oe = 8'b11110111;
 
+  // Framebuffer write/read
+  assign fb_rd_addr = {vga_screen_vpos[7:0], vha_screen_hpos[7:0]};
+  assign fb_rd_data = framebuffer[fb_rd_addr];
+
+  always @(posedge clk) begin
+    if (~rst_n) begin
+      fb_wr_ptr <= {FB_ADDR_BITS{1'b0}};
+    end else if (valid) begin
+      framebuffer[fb_wr_ptr] <= data_out[5:0];
+      fb_wr_ptr <= fb_wr_ptr + 1'b1;
+    end
+  end
+
   // VGA Pixel Color assignments
-  assign pixel_color = data_out[5:0]; // connect pixel color to data_out
+  assign pixel_color = fb_rd_data;
 
   // register outputs for glich prevention
   always @(posedge clk) begin
@@ -129,6 +156,5 @@ module tt_um_enjimneering_spi_m (
   end
 
   assign uo_out = uo_out_r;
-  wire unused_inputs = &{ena, ui_in[6:2], uio_in[7:4], uio_in[2:0], data_out[7:2], vha_screen_hpos, vga_screen_vpos, 1'b0};
 
 endmodule
