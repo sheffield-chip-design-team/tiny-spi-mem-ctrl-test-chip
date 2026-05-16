@@ -1,42 +1,37 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# SPI RAM Reader + VGA Timing (Tiny Tapeout)
 
-- [Read the documentation for project](docs/info.md)
+- [Project datasheet](docs/info.md)
 
-## What is Tiny Tapeout?
+## Overview
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+This design reads bytes from an external SPI RAM (23LC512-style read command `0x03`) and exposes the data either directly on `uo_out` (SPI mode) or as a 6‑bit RGB value alongside VGA timing signals (VGA mode). The VGA timing core generates 640x480 @ 60 Hz sync signals.
 
-To learn more and get started, visit https://tinytapeout.com.
+## Top module
 
-## Set up your Verilog project
+- `tt_um_enjimneering_spi_mem`
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+## Modes
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+- **SPI mode** (`ui_in[0]=0`): `uo_out` shows the received SPI byte. A one‑cycle `ui_in[1]` pulse starts a read, `ui_in[2]` asserts `last`, and `ui_in[7:4]` select the high address nibble.
+- **VGA mode** (`ui_in[0]=1`): `uo_out` outputs `{HS, B0, G0, R0, VS, B1, G1, R1}` with 2‑bit RGB. Fetched SPI bytes are latched into `pixel_col` and displayed as color.
 
-## Enable GitHub actions to build the results page
+## IO summary
 
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+- `uio_out[0]`: `SPI_CS_N`
+- `uio_out[1]`: `SPI_SCK`
+- `uio_out[2]`: `SPI_MOSI`
+- `uio_in[3]`: `SPI_MISO`
+- `uio_out[7:5]`: `{SPI_BUSY, SPI_VALID, SPI_LAST}`
 
-## Resources
+See `info.yaml` for the full pin list.
 
-- [FAQ](https://tinytapeout.com/faq/)
-- [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
-- [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
+## Simulation
 
-## What next?
+Run the cocotb test:
 
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)
+```sh
+cd test
+make -B
+```
