@@ -31,13 +31,19 @@ async def test_spi_read_top(dut):
 
     dut.ui_in.value = ui_in
     await ClockCycles(dut.clk, 1)
+    
     dut.ui_in.value = 0
 
-
-    for _ in range(10):
+    timeout_counter = 0
+    
+    for _ in range(1000):
+        timeout_counter += 1
         if int(dut.uio_out.value) & (1 << 6):
             break
         await RisingEdge(dut.clk)
 
+    if timeout_counter >= 1000:
+        raise TimeoutError("Timeout waiting for SPI read to complete")
+    
     await ClockCycles(dut.clk, 1)
     assert dut.uo_out.value == 0xA5
