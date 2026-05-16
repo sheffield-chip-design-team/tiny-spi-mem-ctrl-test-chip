@@ -36,7 +36,7 @@ module spi_mem_ctrl (
   reg        phase;            // 0: SCK low phase, 1: SCK high phase
 
   reg [23:0] shift_out;        // 0x03 + addr[15:0]
-  reg [7:0]  shift_in;         // incoming byte
+    reg [6:0]  shift_in;         // incoming byte (top bit formed with MISO)
   reg [4:0]  bit_count;        // fits 24 or 8
 
   (*keep*) wire clk_shifter = clk;
@@ -52,7 +52,7 @@ module spi_mem_ctrl (
           valid     <= 1'b0;
           data_out  <= 8'h00;
           shift_out <= 24'h000000;
-          shift_in  <= 8'h00;
+          shift_in  <= 7'h00;
           bit_count <= 5'd0;
       end else begin
           // default
@@ -67,7 +67,7 @@ module spi_mem_ctrl (
                       // latch command + address
                       shift_out <= {8'h03, addr};
                       bit_count <= 5'd24;
-                      shift_in  <= 8'h00;
+                      shift_in  <= 7'h00;
                       cs_n      <= 1'b0;
                       busy      <= 1'b1;
                       state     <= ST_SEND;
@@ -105,7 +105,7 @@ module spi_mem_ctrl (
                   end else begin
                       phase <= 1'b0;
                       // sample MISO at rising edge
-                      shift_in <= {shift_in[6:0], miso};
+                      shift_in <= {shift_in[5:0], miso};
                       if (bit_count == 5'd1) begin
                           data_out <= {shift_in[6:0], miso};
                           state    <= ST_DONE;
@@ -126,7 +126,7 @@ module spi_mem_ctrl (
                     bit_count <= 5'd8;
                     valid     <= 1'b1;       // one-cycle pulse for this byte
                     shift_out <= 24'h000000; // command + address already sent, just need to keep clocking
-                    shift_in  <= 8'h00;
+                    shift_in  <= 7'h00;
                     cs_n      <= 1'b0;       // keep cs low for sequential read
                     busy      <= 1'b1;
                     state     <= ST_RECV;
