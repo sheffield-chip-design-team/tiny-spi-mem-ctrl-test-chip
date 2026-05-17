@@ -2,7 +2,8 @@
 // Module:      VGA Sync
 // Project:     Tetra-SoC, by SHaRC
 // Description: Generates VGA timing signals for 640x480 @ 60Hz
-//              Uses standard 25.175 MHz pixel clock.   
+//              Uses standard 25.175 MHz pixel clock.
+//              Based on the vga playground hvsync_generator by Uri Shaked
 // =======================================================================
 
 module vga_sync (  
@@ -43,7 +44,7 @@ module vga_sync (
 //----------------------------------------------------------------------
 // Internal Signals
 //----------------------------------------------------------------------
-
+    
     reg [9:0] hpos;
     reg [9:0] vpos;
     wire      hmaxxed;
@@ -54,8 +55,8 @@ module vga_sync (
 //----------------------------------------------------------------------
 // Counters
 //----------------------------------------------------------------------
-
-    // horizontal position counter
+    
+  // horizontal position counter
     always @(posedge clk) begin
         if (rst) begin
             hpos  <= 0;
